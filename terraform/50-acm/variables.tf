@@ -6,19 +6,6 @@ variable "environment" {
   default = "dev"
 }
 
-variable "common_tags" {
-  default = {
-    Project = "expense"
-    Environment = "dev"
-    Terraform = "true"
-    Component = "ingress-alb"
-  }
-}
-
-variable "zone_name" {
-  default = "eswarsaikumar.site"
-}
-
-variable "zone_id" {
-  default = "Z049815217OT8LASP86LW"
+variable "acm_certificate_arn" {
+  description = "Existing ACM Certificate ARN"
 }
