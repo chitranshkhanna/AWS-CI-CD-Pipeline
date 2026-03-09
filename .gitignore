@@ -6,3 +6,5 @@
 
 # Secrets
 *.pem
+*.key
+.env

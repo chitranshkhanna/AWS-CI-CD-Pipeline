@@ -8,12 +8,12 @@ variable "environment" {
 
 variable "common_tags" {
   default = {
-    Project = "expense"
+    Project     = "expense"
     Environment = "dev"
-    Terraform = "true"
+    Terraform   = "true"
   }
 }
 
 variable "zone_name" {
-  default = "eswarsaikumar.site"
+  default = "ckops.xyz"
 }
