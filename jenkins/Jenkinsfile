@@ -1,55 +1,88 @@
 pipeline {
+    agent any
 
-  agent any
-
-  environment {
-    AWS_REGION = "us-east-1"
-    ECR_REPO = "<ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/expense-backend"
-  }
-
-  stages {
-
-    stage('Checkout') {
-      steps {
-        git 'https://github.com/YOUR_REPO_URL.git'
-      }
+    environment {
+        AWS_REGION     = 'us-east-1'
+        AWS_ACCOUNT_ID = '374031960771'
+        ECR_REPO_NAME  = 'expense-backend'
+        ECR_REGISTRY   = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        IMAGE_NAME     = 'expense-app'
+        IMAGE_TAG      = 'latest'
+        IMAGE_URI      = "${ECR_REGISTRY}/${ECR_REPO_NAME}:${IMAGE_TAG}"
+        CLUSTER_NAME   = 'expense-dev'
+        GIT_REPO       = 'https://github.com/chitranshkhanna/AWS-CI-CD-Pipeline.git'
+        GIT_BRANCH     = 'main'
     }
 
-    stage('Build Docker Image') {
-      steps {
-        sh 'docker build -t expense-app ./app'
-      }
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
-    stage('Login to ECR') {
-      steps {
-        sh '''
-        aws ecr get-login-password --region $AWS_REGION \
-        | docker login \
-        --username AWS \
-        --password-stdin $ECR_REPO
-        '''
-      }
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: "${GIT_BRANCH}", url: "${GIT_REPO}"
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('app') {
+                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                }
+            }
+        }
+
+        stage('Login to ECR') {
+            steps {
+                sh """
+                    aws ecr get-login-password --region ${AWS_REGION} | \
+                    docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                """
+            }
+        }
+
+        stage('Tag Docker Image') {
+            steps {
+                sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_URI}"
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh "docker push ${IMAGE_URI}"
+            }
+        }
+
+        stage('Update Kubeconfig') {
+            steps {
+                sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER_NAME}"
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                sh "kubectl apply -f k8s/deployment.yaml"
+                sh "kubectl apply -f k8s/service.yaml"
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh "kubectl get pods"
+                sh "kubectl get svc"
+            }
+        }
     }
 
-    stage('Tag Image') {
-      steps {
-        sh 'docker tag expense-app:latest $ECR_REPO:latest'
-      }
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed. Check the stage logs.'
+        }
     }
-
-    stage('Push Image') {
-      steps {
-        sh 'docker push $ECR_REPO:latest'
-      }
-    }
-
-    stage('Deploy to EKS') {
-      steps {
-        sh 'kubectl apply -f k8s/'
-      }
-    }
-
-  }
-
 }
