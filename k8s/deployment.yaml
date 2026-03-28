@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: expense-app
-        image: <ECR_IMAGE_URL>:latest
+        image: 374031960771.dkr.ecr.us-east-1.amazonaws.com/expense-backend:latest
 
         ports:
         - containerPort: 5000

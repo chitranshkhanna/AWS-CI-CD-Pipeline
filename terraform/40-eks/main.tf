@@ -1,6 +1,6 @@
 resource "aws_key_pair" "eks" {
   key_name   = "eks"
-  public_key = file("C:/Users/chitr/.ssh/eks-key.pub")
+  public_key = file("/home/chitransh/.ssh/eks-key.pub")
 }
 
 module "eks" {
